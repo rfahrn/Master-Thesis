@@ -1,0 +1,231 @@
+[
+  {
+    "image": "/capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/ce5f03e857c103bea224264228053e3f.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nTell me about any lesions on this X-ray and detail their specific locations."
+      },
+      {
+        "from": "gpt",
+        "value": "The Chest X-ray appears to be clear of any lesions or abnormalities."
+      }
+    ],
+    "id": "vindr-multi-train_4793",
+    "labels": [
+      "No finding"
+    ],
+    "data_source": "medical_grounding",
+    "prompt": [
+      {
+        "content": "<image>\nTell me about any lesions on this X-ray and detail their specific locations. First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1].",
+        "role": "user"
+      }
+    ],
+    "images": [
+      {
+        "image": "file:///capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/ce5f03e857c103bea224264228053e3f.jpg",
+        "max_pixels": 451584,
+        "min_pixels": 1024
+      }
+    ],
+    "ability": "radiology_grounding",
+    "reward_model": {
+      "ground_truth": "The Chest X-ray appears to be clear of any lesions or abnormalities.",
+      "style": "rule"
+    },
+    "extra_info": {
+      "difficulty_level": "easy",
+      "has_findings": false,
+      "index": 0,
+      "labels": [
+        "No finding"
+      ],
+      "num_boxes": 0,
+      "original_id": "vindr-multi-train_4793",
+      "split": "train"
+    }
+  },
+  {
+    "image": "/capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/d609889a8598d271b2dd179ad4c58cbd.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nAre abnormalities present on this Chest X-ray? Where exactly can they be found?"
+      },
+      {
+        "from": "gpt",
+        "value": "Based on this X-ray, it appears there are no lesions or abnormalities to report."
+      }
+    ],
+    "id": "vindr-multi-train_10701",
+    "labels": [
+      "No finding"
+    ],
+    "data_source": "medical_grounding",
+    "prompt": [
+      {
+        "content": "<image>\nAre abnormalities present on this Chest X-ray? Where exactly can they be found? First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1].",
+        "role": "user"
+      }
+    ],
+    "images": [
+      {
+        "image": "file:///capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/d609889a8598d271b2dd179ad4c58cbd.jpg",
+        "max_pixels": 451584,
+        "min_pixels": 1024
+      }
+    ],
+    "ability": "radiology_grounding",
+    "reward_model": {
+      "ground_truth": "Based on this X-ray, it appears there are no lesions or abnormalities to report.",
+      "style": "rule"
+    },
+    "extra_info": {
+      "difficulty_level": "easy",
+      "has_findings": false,
+      "index": 1,
+      "labels": [
+        "No finding"
+      ],
+      "num_boxes": 0,
+      "original_id": "vindr-multi-train_10701",
+      "split": "train"
+    }
+  },
+  {
+    "image": "/capstor/store/cscs/swissai/a135/RadVLM_project/data/MIMIC-CXR-JPG/files/p12/p12345946/s58202617/10c8498a-ec137be1-c20d0f08-25c5529f-4912c817.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nHighlight the left mid lung zone's area on the image."
+      },
+      {
+        "from": "gpt",
+        "value": "The location for the left mid lung zone is marked at [0.54, 0.33, 0.88, 0.46] on the Chest X-ray."
+      }
+    ],
+    "id": "chestima-train_36097",
+    "labels": null,
+    "data_source": "medical_grounding",
+    "prompt": [
+      {
+        "content": "<image>\nHighlight the left mid lung zone's area on the image. First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1].",
+        "role": "user"
+      }
+    ],
+    "images": [
+      {
+        "image": "file:///capstor/store/cscs/swissai/a135/RadVLM_project/data/MIMIC-CXR-JPG/files/p12/p12345946/s58202617/10c8498a-ec137be1-c20d0f08-25c5529f-4912c817.jpg",
+        "max_pixels": 451584,
+        "min_pixels": 1024
+      }
+    ],
+    "ability": "radiology_grounding",
+    "reward_model": {
+      "ground_truth": "The location for the left mid lung zone is marked at [0.54, 0.33, 0.88, 0.46] on the Chest X-ray.",
+      "style": "rule"
+    },
+    "extra_info": {
+      "difficulty_level": "easy",
+      "has_findings": true,
+      "index": 2,
+      "labels": [],
+      "num_boxes": 1,
+      "original_id": "chestima-train_36097",
+      "split": "train"
+    }
+  },
+  {
+    "image": "/capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/421a769663792125e8d7d05459a01efb.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nOn this Chest X-ray, can you point out any abnormalities and their precise positions?"
+      },
+      {
+        "from": "gpt",
+        "value": "After a detailed review, we have discovered an aortic enlargement located at the coordinates [0.48, 0.25, 0.64, 0.41]; a pleural thickening located at the coordinates [0.31, 0.13, 0.39, 0.15]."
+      }
+    ],
+    "id": "vindr-multi-train_11189",
+    "labels": [
+      "Aortic enlargement",
+      "Pleural thickening"
+    ],
+    "data_source": "medical_grounding",
+    "prompt": [
+      {
+        "content": "<image>\nOn this Chest X-ray, can you point out any abnormalities and their precise positions? First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1].",
+        "role": "user"
+      }
+    ],
+    "images": [
+      {
+        "image": "file:///capstor/store/cscs/swissai/a135/RadVLM_project/data/VinDr-CXR/train_jpg/421a769663792125e8d7d05459a01efb.jpg",
+        "max_pixels": 451584,
+        "min_pixels": 1024
+      }
+    ],
+    "ability": "medical_grounding_classified",
+    "reward_model": {
+      "ground_truth": "After a detailed review, we have discovered an aortic enlargement located at the coordinates [0.48, 0.25, 0.64, 0.41]; a pleural thickening located at the coordinates [0.31, 0.13, 0.39, 0.15].",
+      "style": "rule"
+    },
+    "extra_info": {
+      "difficulty_level": "medium",
+      "has_findings": true,
+      "index": 3,
+      "labels": [
+        "Aortic Enlargement",
+        "Pleural Thickening"
+      ],
+      "num_boxes": 2,
+      "original_id": "vindr-multi-train_11189",
+      "split": "train"
+    }
+  },
+  {
+    "image": "/capstor/store/cscs/swissai/a135/RadVLM_project/data/MIMIC-CXR-JPG/files/p13/p13195446/s50282094/a12837f9-4ab54588-e70cf57c-8078812b-9a2000a2.jpg",
+    "conversations": [
+      {
+        "from": "human",
+        "value": "<image>\nWhat's the location of the mediastinum in the X-ray?"
+      },
+      {
+        "from": "gpt",
+        "value": "The mediastinum can be seen at [0.44, 0.21, 0.77, 0.81] on the Chest X-ray."
+      }
+    ],
+    "id": "chestima-train_37058",
+    "labels": null,
+    "data_source": "medical_grounding",
+    "prompt": [
+      {
+        "content": "<image>\nWhat's the location of the mediastinum in the X-ray? First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1].",
+        "role": "user"
+      }
+    ],
+    "images": [
+      {
+        "image": "file:///capstor/store/cscs/swissai/a135/RadVLM_project/data/MIMIC-CXR-JPG/files/p13/p13195446/s50282094/a12837f9-4ab54588-e70cf57c-8078812b-9a2000a2.jpg",
+        "max_pixels": 451584,
+        "min_pixels": 1024
+      }
+    ],
+    "ability": "radiology_grounding",
+    "reward_model": {
+      "ground_truth": "The mediastinum can be seen at [0.44, 0.21, 0.77, 0.81] on the Chest X-ray.",
+      "style": "rule"
+    },
+    "extra_info": {
+      "difficulty_level": "easy",
+      "has_findings": true,
+      "index": 4,
+      "labels": [],
+      "num_boxes": 1,
+      "original_id": "chestima-train_37058",
+      "split": "train"
+    }
+  }
+]

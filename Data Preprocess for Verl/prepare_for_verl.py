@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 DATA_SOURCE = "medical_grounding"
-PROMPT_SUFFIX = " First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1]."
-
+# PROMPT_SUFFIX = " First output your analysis in <think> </think> tags and then output the final answer in <answer> </answer> tags. If you output bounding boxes make sure you normalize them [0,1]."
+PROMPT_SUFFIX = "Provide your answer inside <answer>...</answer> tags. For bounding boxes: use format [x1, y1, x2, y2] normalized to [0,1] with x1<x2 and y1<y2."
 MIN_PIXELS = 1024
 MAX_PIXELS = 451584
 

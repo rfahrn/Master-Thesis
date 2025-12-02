@@ -1,138 +1,26 @@
 """
 R3: Multi-Objective Reward Function with Hungarian Matching
-============================================================
-
-DESIGN PRINCIPLES:
-==================
-
-1. **Hungarian Matching** (optimal bipartite assignment)
-   - Finds globally optimal one-to-one correspondence
-   - Maximizes total IoU across all matches
-   - Guarantees optimal assignment even with overlapping boxes
-
-2. **Simple Reward Function** (vs cubic spline)
-   - Choose between piecewise linear or smooth exponential 
-   - Maintains key properties: penalties at low IoU, strong gradient in learning zone
-
-3. **Multi-Objective Penalties** (novel contribution)
-   - Size, aspect ratio, and center distance penalties
-   - Addresses IoU limitations for geometric quality
-
-4. **Fixed Hyperparameters** (no adaptive configuration)
-   - Single set of parameters throughout training
-   - Easier to explain and reproduce
-
-MATHEMATICAL FORMULATION:
-=========================
-
-Option A - Piecewise Linear Reward:
------------------------------------
-    r(IoU) = {
-        -0.50                          if IoU = 0.00
-        -0.50 + 2.0·IoU                if 0.00 < IoU ≤ 0.20
-        -0.10 + 1.0·(IoU - 0.20)       if 0.20 < IoU ≤ 0.50
-         0.20 + 1.0·(IoU - 0.50)       if 0.50 < IoU ≤ 0.85
-         0.55 + 3.0·(IoU - 0.85)       if 0.85 < IoU ≤ 1.00
-    }
-
-Option B - Smooth Exponential Reward:
---------------------------------------
-    r(IoU) = -0.50 + 1.50·(1 - exp(-3·IoU))
-
-    Properties:
-    - Smooth everywhere (C∞ continuous)
-    - Starts at -0.50 when IoU = 0
-    - Asymptotically approaches 1.0 as IoU → 1
-    - Strong gradient in middle range
-
-Hungarian Matching:
--------------------
-    Given IoU matrix C ∈ ℝ^(M×N) where C[i,j] = IoU(Bᵢ, Bⱼ):
-    
-    1. Convert to cost matrix: Cost = 1 - IoU (minimize cost = maximize IoU)
-    2. Apply Hungarian algorithm (Kuhn-Munkres) to find optimal assignment
-    3. Assignment π* = argmin_π Σᵢ Cost[i, π(i)]
-    4. Filter matches where IoU > 0
-    
-    Time complexity: O(max(M,N)³)
-    Space complexity: O(M × N)
-    
-    Advantages over Greedy:
-    - Globally optimal assignment
-    - Better handling of overlapping/ambiguous boxes
-    - Consistent with DETR-style object detection
-
-Multi-Objective Adjustment:
----------------------------
-    p_size = |log(Area(Bᵢ) / Area(Bⱼ))| / 3
-    p_aspect = |AR(Bᵢ) - AR(Bⱼ)| / max(AR(Bᵢ), AR(Bⱼ))
-    p_center = ||center(Bᵢ) - center(Bⱼ)|| / diagonal(Bⱼ)
-    
-    p_total = w_size·p_size + w_aspect·p_aspect + w_center·p_center
-    r_adjusted = r_base(IoU) · (1 - p_total)
-
-F-beta Score:
--------------
-    Precision = Σ r_adjusted / M
-    Recall = Σ r_adjusted / N
-    F_β = (1 + β²) · (Precision · Recall) / (β² · Precision + Recall)
-
-    where β = 1.5 (slight recall emphasis)
 """
-
 import re
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from typing import List, Tuple, Dict, Optional
-
-# ============================================================================
-# FIXED HYPERPARAMETERS
-# ============================================================================
-
-# Reward function parameters
 PENALTY_FLOOR = -0.45          # Minimum reward for very poor predictions
 NO_FINDING_REWARD = 0.20        # Reward for correctly predicting no abnormalities
-
-# Multi-objective penalty weights
+# penalty weights
 W_SIZE = 0.20                   # Weight for size penalty
 W_ASPECT = 0.10                 # Weight for aspect ratio penalty  
 W_CENTER = 0.10                 # Weight for center distance penalty
-
 # F-beta parameter
 BETA = 1.5                      # Emphasizes recall over precision
-
 # Over-prediction penalties
 FP_TOLERANCE = 1.3              # Allow up to 1.3× GT boxes before penalizing
 LAMBDA_SPAM = 0.6               # Strength of over-prediction penalty
-
 # False positive penalties (when GT = 0)
 BETA_FP_BASE = 0.25             # Base false positive penalty
 LAMBDA_FP = 0.5                 # Decay rate for multiple FPs
 GAMMA_FP = 1.5                  # Superlinear decay exponent
-
-
-# ============================================================================
-# REWARD FUNCTIONS - CHOOSE ONE
-# ============================================================================
-
 def piecewise_linear_reward(iou: float) -> float:
-    """
-    Option A: Piecewise linear reward function.
-    
-    Advantages:
-    - Very simple to explain and implement
-    - Clear breakpoints at key IoU thresholds
-    - Easy to visualize in thesis
-    
-    Disadvantages:
-    - Discontinuous gradients at breakpoints
-    - Less smooth optimization landscape
-    
-    Thesis explanation:
-    "We use a piecewise linear function with steep gradients in the learning
-    zone (IoU ∈ [0.2, 0.5]) to encourage rapid improvement, and maintained
-    gradients at high IoU to prevent premature convergence."
-    """
     iou = float(np.clip(iou, 0.0, 1.0))
     
     if iou <= 0.20:
@@ -148,11 +36,7 @@ def piecewise_linear_reward(iou: float) -> float:
         # Gradient = 1.0 (maintain signal)
         reward = 0.20 + 1.0 * (iou - 0.50)
     else:
-        # Excellent zone → perfect
-        # Gradient = 3.0 (final push)
         reward = 0.55 + 3.0 * (iou - 0.85)
-    
-    # Apply penalty floor to negative rewards
     if reward < 0:
         reward = reward * (PENALTY_FLOOR / -0.50)
     
@@ -160,48 +44,14 @@ def piecewise_linear_reward(iou: float) -> float:
 
 
 def smooth_exponential_reward(iou: float) -> float:
-    """
-    Option B: Smooth exponential reward function.
-    
-    Advantages:
-    - Single, simple equation
-    - Infinitely differentiable (C∞ continuous)
-    - Smooth optimization landscape
-    
-    Formula:
-        r(IoU) = -0.50 + 1.50 × (1 - e^(-3×IoU))
-    
-    At key points:
-        IoU = 0.00 → r = -0.50
-        IoU = 0.20 → r ≈ -0.05
-        IoU = 0.50 → r ≈ +0.35
-        IoU = 0.85 → r ≈ +0.82
-        IoU = 1.00 → r ≈ +0.95
-    
-    Thesis explanation:
-    "We use an exponential reward function r(IoU) = a + b(1 - e^(-c×IoU))
-    which provides smooth gradients throughout the IoU range while maintaining
-    strong penalties for poor predictions and high rewards for accurate localization."
-    """
     iou = float(np.clip(iou, 0.0, 1.0))
-    
-    # Exponential growth from -0.50 to ~1.0
     reward = -0.50 + 1.50 * (1.0 - np.exp(-3.0 * iou))
-    
-    # Apply penalty floor to negative rewards
     if reward < 0:
         reward = reward * (PENALTY_FLOOR / -0.50)
-    
     return float(np.clip(reward, PENALTY_FLOOR, 1.0))
-
-
-# ============================================================================
-# CHOOSE YOUR REWARD FUNCTION HERE
-# ============================================================================
-
-# Uncomment the one you want to use:
-#base_reward_function = piecewise_linear_reward  # Simplest for thesis
-base_reward_function = smooth_exponential_reward  # If you want smoothness
+   
+base_reward_function = piecewise_linear_reward  
+#base_reward_function = smooth_exponential_reward 
 
 def extract_bounding_boxes(answer: str) -> List[List[float]]:
     """Extract [x1, y1, x2, y2] bounding boxes from text."""
@@ -252,9 +102,7 @@ def compute_iou(box1: List[float], box2: List[float]) -> float:
 def compute_size_penalty(pred_box: List[float], gt_box: List[float]) -> float:
     """
     Logarithmic size penalty.
-    
     Penalizes boxes that are too large or too small relative to ground truth.
-    Using log makes this symmetric: 2× too big = 0.5× too small in penalty.
     """
     pred_area = (pred_box[2] - pred_box[0]) * (pred_box[3] - pred_box[1])
     gt_area = (gt_box[2] - gt_box[0]) * (gt_box[3] - gt_box[1])
@@ -269,7 +117,6 @@ def compute_size_penalty(pred_box: List[float], gt_box: List[float]) -> float:
 def compute_aspect_ratio_penalty(pred_box: List[float], gt_box: List[float]) -> float:
     """
     Aspect ratio penalty.
-    
     Penalizes boxes with incorrect shape (too wide or too tall).
     Normalized by max aspect ratio for scale invariance.
     """
@@ -291,7 +138,6 @@ def compute_aspect_ratio_penalty(pred_box: List[float], gt_box: List[float]) -> 
 def compute_center_distance_penalty(pred_box: List[float], gt_box: List[float]) -> float:
     """
     Center distance penalty.
-    
     Penalizes boxes that are offset from the correct location.
     Normalized by diagonal of GT box for scale invariance.
     """
@@ -313,11 +159,6 @@ def compute_center_distance_penalty(pred_box: List[float], gt_box: List[float]) 
 
     penalty = dist / diagonal
     return float(np.clip(penalty, 0.0, 1.0))
-
-
-# ============================================================================
-# HUNGARIAN MATCHING (OPTIMAL ASSIGNMENT)
-# ============================================================================
 
 def hungarian_match(iou_matrix: np.ndarray) -> Tuple[List[Tuple[int, int]], List[float]]:
     """
@@ -389,7 +230,7 @@ def compute_fbeta_score(tp_weighted: float, num_pred: int, num_gt: int,
         precision = Σ r_adjusted / M  (sum of adjusted rewards / num predictions)
         recall = Σ r_adjusted / N     (sum of adjusted rewards / num ground truth)
     
-    β = 1.5 emphasizes recall slightly over precision (important for medical imaging).
+    β = 1.5 emphasizes recall slightly over precision 
     """
     eps = 1e-8
 
@@ -406,11 +247,6 @@ def compute_fbeta_score(tp_weighted: float, num_pred: int, num_gt: int,
     fbeta = ((1 + beta_sq) * precision * recall) / (beta_sq * precision + recall + eps)
 
     return float(np.clip(fbeta, 0.0, 1.0))
-
-
-# ============================================================================
-# MAIN REWARD COMPUTATION
-# ============================================================================
 
 def compute_reward(predicted_boxes: List[List[float]],
                   actual_boxes: List[List[float]],
@@ -554,18 +390,6 @@ def compute_reward(predicted_boxes: List[List[float]],
 
 def compute_score(data_source: str, solution_str: str, ground_truth: str,
                  extra_info: Optional[dict] = None) -> float:
-    """
-    Main entry point for VeRL RewardManager.
-    
-    Args:
-        data_source: Dataset name
-        solution_str: Model output containing predicted bounding boxes
-        ground_truth: Ground truth string or boxes via extra_info
-        extra_info: Optional dict with 'bounding_boxes' key
-        
-    Returns:
-        Reward score in [PENALTY_FLOOR, 1.0]
-    """
     predicted_boxes = extract_bounding_boxes(solution_str)
 
     if extra_info and 'bounding_boxes' in extra_info:
@@ -576,11 +400,6 @@ def compute_score(data_source: str, solution_str: str, ground_truth: str,
     score, _ = compute_reward(predicted_boxes, ground_truth_boxes, BETA)
 
     return float(score)
-
-
-# ============================================================================
-# COMPARISON: GREEDY VS HUNGARIAN (for testing/demonstration)
-# ============================================================================
 
 def greedy_match(iou_matrix: np.ndarray) -> Tuple[List[Tuple[int, int]], List[float]]:
     """
@@ -619,15 +438,7 @@ def compare_matching_algorithms():
     """
     Demonstrate cases where Hungarian outperforms Greedy matching.
     """
-    print("=" * 70)
-    print("COMPARISON: GREEDY vs HUNGARIAN MATCHING")
-    print("=" * 70)
-    
-    # Case where greedy is suboptimal
-    # Pred boxes: A overlaps well with GT1, B overlaps with both GT1 and GT2
-    # Greedy (processing GT1 first) might take A for GT1
-    # But optimal is: A→GT2, B→GT1 (if B has higher IoU with GT1)
-    
+    print("comparison greedy vs hungarian")
     test_cases = [
         {
             'name': 'Simple case (both methods equal)',

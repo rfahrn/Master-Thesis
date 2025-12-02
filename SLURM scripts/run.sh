@@ -78,18 +78,18 @@ python3 -m verl.trainer.main_ppo \\
     \\
     data.train_files=\$DATA_DIR/train.parquet \\
     data.val_files=\$DATA_DIR/val.parquet \\
-    data.train_batch_size=128 \\
-    data.val_batch_size=8 \\
+    data.train_batch_size=256  \\
+    data.val_batch_size=1\\
     data.max_prompt_length=768 \\
-    data.max_response_length=768 \\
+    data.max_response_length=2048 \\
     data.image_key=images \\
     \\
-    actor_rollout_ref.model.path=/capstor/store/cscs/swissai/a135/RadVLM_project/models/qwen2.5VL_full \\
+    actor_rollout_ref.model.path=.../qwen2.5VL_full \\
     actor_rollout_ref.model.enable_gradient_checkpointing=True \\
     \\
     actor_rollout_ref.actor.optim.lr=1e-6 \\
     actor_rollout_ref.actor.ppo_mini_batch_size=64 \\
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=8 \\
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \\
     actor_rollout_ref.actor.use_kl_loss=True \\
     actor_rollout_ref.actor.kl_loss_coef=0.01 \\
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \\
@@ -109,13 +109,14 @@ python3 -m verl.trainer.main_ppo \\
     \\
     trainer.logger='[\"console\",\"wandb\"]' \\
     trainer.project_name=grpo_medical_grounding \\
-    trainer.experiment_name=qwen_fbeta_R1 \\
+    trainer.experiment_name=..\\  # the names of the experiment 
     trainer.n_gpus_per_node=4 \\
     trainer.nnodes=8 \\
     trainer.save_freq=10 \\
-    trainer.test_freq=20 \\
+    trainer.test_freq=5 \\
+    trainer.val_before_train=True \\
     trainer.default_local_dir=\${SAVE_PATH} \\
-    trainer.total_epochs=3
+    trainer.total_epochs=1
 
   echo \"=========================================\"
   echo \"Training completed!\"
